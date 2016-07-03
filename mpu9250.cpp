@@ -3,6 +3,8 @@
 
 #include "mpu9250.h"
 
+
+
 // MPU_Init_Data 변수에는 초기화할 값과 레지스터 주소가 들어감.
 #define MPU_InitRegNum  15
 
