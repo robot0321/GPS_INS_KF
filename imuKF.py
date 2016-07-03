@@ -11,6 +11,16 @@ with open("output.txt", 'r') as file:
 	for j in range(len(column[0])):
 		data_array[0][j] /= 1000.
 
+if __name__=='__main__':
+	#show(raw_Accelero_position())
+	
+
+
+
+
+#def Kalman_position():
+
+
 def raw_Accelero_position(): 
 	Pre_time = 5.744
 	Accbuff = []
@@ -48,5 +58,3 @@ def show(data):
 	plt.show()
 
 
-if __name__=='__main__':
-	show(raw_Accelero_position())
