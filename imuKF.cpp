@@ -22,6 +22,9 @@ int main(int arg, char **argv){
 			cout<<gyroData[i]<<" ";
 		}
 		cout<<endl;
+		
+
+
 	}
 }
 
