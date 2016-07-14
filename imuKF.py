@@ -1,6 +1,7 @@
 import numpy as np 
 import matplotlib.pyplot as plt 
 import csv
+import uda_matrix as umx
 
 data_array = []
 
@@ -10,16 +11,15 @@ with open("output.txt", 'r') as file:
 		data_array.append(np.array(column[i], dtype='float'))
 	for j in range(len(column[0])):
 		data_array[0][j] /= 1000.
-
-if __name__=='__main__':
-	#show(raw_Accelero_position())
-	
-
-
+		data_array[1][j] *= 0.001197509765625
+		data_array[2][j] *= 0.001197509765625
+		data_array[3][j] *= 0.001197509765625
+		data_array[4][j] *= 0.00106526421440972222222
+		data_array[5][j] *= 0.00106526421440972222222
+		data_array[6][j] *= 0.00106526421440972222222
 
 
 #def Kalman_position():
-
 
 def raw_Accelero_position(): 
 	Pre_time = 5.744
@@ -50,11 +50,26 @@ def raw_Accelero_position():
 
 	return position
 
-def show(data):
+def graph(dataAxis, timeAxis=data_array[0]):
 	plt.figure()
-	for i in range(len(data)):
-		plt.subplot(len(data),1,i+1)
-		plt.plot(data_array[0], data[i])
+	for i in range(len(dataAxis)):
+		plt.subplot(len(dataAxis),1,i+1)
+		plt.plot(timeAxis, dataAxis)
 	plt.show()
 
 
+if __name__=='__main__':
+	#graph(raw_Accelero_position())
+	QuaternionX = []
+	x = umx.matrix([[1.,0.,0.,0.]]).transpose()
+	P = umx.matrix([[]]); P.diagonal(4,1000.)
+	z = [1., 0., 0., 0.]
+	dt = .2
+	#xP[0.,0.]
+	for phase in range(len(column[0])):
+		# w: gyro, z: measured Quaternion
+		w = [float(column[4][phase]), float(column[5][phase]), float(column[6][phase])]
+		x,P = umx.kalman_filter(x, P, w, dt)
+		QuaternionX.append(x.transpose().normalize()) #data collecting
+		print QuaternionX[phase]
+	#print QuaternionX
