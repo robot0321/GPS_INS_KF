@@ -45,8 +45,7 @@ AHRS::~AHRS(){
 	 transforming_buffer.clear();
 }
 
-void AHRS::attitude_update(vector<float> w_new, float dt){
-	dt /= 1000.0;
+void AHRS::attitude_update(vector<float> w_new, double dt){
 	//Adams-Bashford method : Linear multistep(in this case, 2) method
 	//w_1 & w_2 is already transformed (body to platform) gyro_value
 	Q_0[0] = Q_1[0] - (3*(w_1[0]*Q_1[1] + w_1[1]*Q_1[2] + w_1[2]*Q_1[3]) - (w_2[0]*Q_2[1] + w_2[1]*Q_2[2] + w_2[2]*Q_2[3]))*dt/4;
@@ -86,3 +85,14 @@ vector<float> AHRS::frame_transformer(vector<float> Q, vector<float> v){
 	//return Q-transformed gyro
 	return transforming_buffer;
 } 
+
+vector<float> AHRS::Qaurt2Euler(vector<float> Q){
+	vector<float> E;
+	E.resize(3);
+
+	E[0] = atan2f(2*Q[2]*Q[3] + 2*Q[0]*Q[1], Q[0]*Q[0] - Q[1]*Q[1] - Q[2]*Q[2] + Q[3]*Q[3]);
+	E[1] = asinf(-2*Q[1]*Q[3] + 2*Q[0]*Q[2]);
+	E[2] = atan2f(2*Q[1]*Q[2] + 2*Q[0]*Q[3], Q[0]*Q[0] + Q[1]*Q[1] - Q[2]*Q[2] - Q[3]*Q[3]);
+
+	return E;
+}

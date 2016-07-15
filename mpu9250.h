@@ -1,3 +1,5 @@
+#include <vector>
+
 #ifndef MPU9250_H
 #define MPU9250_H
 
@@ -151,11 +153,11 @@
 #define MPU_CHANNEL 1
 class MPU9250{
 private:
-	float gyro_scaler;
-	float accelero_scaler;
-	float magneto_scaler;
-	float temp_scaler;
-	float* scaler;
+	double gyro_scaler;
+	double accelero_scaler;
+	double magneto_scaler;
+	double temp_scaler;
+	double scaler[7];
 
 public:
 	char gyro_range;
@@ -172,9 +174,9 @@ public:
 	void mpu9250Reads(unsigned char regNum, unsigned char* readBuf, int Bytes);
 	void mpu9250Write(unsigned char value, unsigned char regNum);
 
-	void mpu9250read_acc(float* vector);
-	void mpu9250read_mag(float* vector);
-	void mpu9250read_gyro(float* vector);
-	void mpu9250read_all(float* v, bool raw);
+	void mpu9250read_acc(double* v);
+	void mpu9250read_mag(double* v);
+	void mpu9250read_gyro(double* v);
+	void mpu9250read_all(double* v, bool raw);
 };
 #endif

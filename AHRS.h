@@ -17,6 +17,7 @@ public:
 	AHRS(std::vector<float> init_Q);
 	~AHRS();
 
-	void attitude_update(std::vector<float> w, float dt);
+	void attitude_update(std::vector<float> w, double dt);
 	std::vector<float> frame_transformer(std::vector<float> Q, std::vector<float> v);
+	std::vector<float> Qaurt2Euler(std::vector<float> Q);
 };

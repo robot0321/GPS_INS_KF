@@ -6,45 +6,17 @@
 // MPU_Init_Data 변수에는 초기화할 값과 레지스터 주소가 들어감.
 #define MPU_InitRegNum  15
 
-/*
-class MPU9250{
-private:
-	float gyro_scaler;
-	float accelero_scaler;
-	float magneto_scaler;	
-
-public:
-	char gyro_range;
-	char accelero_range;
-	int spi_speed;
-	int spi_delayMS;
-
-	MPU9250();
-	MPU9250(int acc, int gyro, int speed, int delay);
-	~MPU9250();
-
-	void mpu9250Initialize();
-	void mpu9250Write(unsigned char value, unsigned char regNum);
-	unsigned char mpu9250Read(unsigned char regNum);
-	void mpu9250Reads(unsigned char regNum, unsigned char* regBuf, int Bytes);
-	void mpu9250read_acc(float* vector);
-	void mpu9250read_mag(float* vector);
-	void mpu9250read_gyro(float* vector);
-
-};
-*/
-
 MPU9250::MPU9250(){ //default constructor	
 	accelero_range = 0x08;
 	gyro_range = 0x18;
 	spi_speed = 800000; //speed limit : 1M
-	spi_delayMS = 100; //wait before SPI transmission
-	gyro_scaler = (float)0.00106526421440972222222;
-	accelero_scaler = (float)0.001197509765625;
-    temp_scaler = 0;
-    float temp[] = {accelero_scaler, accelero_scaler, accelero_scaler, temp_scaler, gyro_scaler, gyro_scaler, gyro_scaler};
-    scaler = temp;
-	//magneto_scaler = 
+	spi_delayMS = 200; //min:100 //wait before SPI transmission
+	gyro_scaler     = 0.0010652642;//14409;//72222222;
+	accelero_scaler = 0.0011975097;//65625;
+    temp_scaler = 0.0;
+
+    for(int i=0;i<3;i++){scaler[i] = accelero_scaler; scaler[i+4] = gyro_scaler;}
+	scaler[3] = temp_scaler;
 }
 
 MPU9250::MPU9250(int acc=0x08, int gyro=0x18, int speed=800000,int delay = 1000){
@@ -145,28 +117,28 @@ void MPU9250::mpu9250Write(unsigned char value, unsigned char regNum){
 }
 
 // 가속도 받아오기.
-void MPU9250::mpu9250read_acc(float* vector){
+void MPU9250::mpu9250read_acc(double* vector){
     unsigned char buffer[7];
     short temp;
-    float data;
+    double data;
 
     // +-4G
     mpu9250Reads(0x3B, buffer, 6);
     temp = ((short)buffer[1] << 8) | buffer[2];
-    data = (float)temp*accelero_scaler;
+    data = (double)temp*accelero_scaler;
     vector[0] = data;
 
     temp = ((short)buffer[3] << 8) | buffer[4];
-    data = (float)temp*accelero_scaler;
+    data = (double)temp*accelero_scaler;
     vector[1] = data;
     
     temp = ((short)buffer[5] << 8) | buffer[6];
-    data = (float)temp*accelero_scaler;
+    data = (double)temp*accelero_scaler;
     vector[2] = data;   
 }
 
 // 자기장 받아오기. 현재 작동 안함..
-void MPU9250::mpu9250read_mag(float* vector){
+void MPU9250::mpu9250read_mag(double* vector){
     unsigned char buffer[7];
     short temp;
 
@@ -178,45 +150,62 @@ void MPU9250::mpu9250read_mag(float* vector){
 
     mpu9250Reads(MPUREG_EXT_SENS_DATA_00, buffer, 6);
     temp = ((short)buffer[1] << 8) | buffer[2];
-    vector[0] = (float)temp;
+    vector[0] = (double)temp;
 
     temp = ((short)buffer[3] << 8) | buffer[4];
-    vector[1] = (float)temp;
+    vector[1] = (double)temp;
     
     temp = ((short)buffer[5] << 8) | buffer[6];
-    vector[2] = (float)temp; 
+    vector[2] = (double)temp; 
 }
 
 
 // 자이로 받아오기
-void MPU9250::mpu9250read_gyro(float* vector){
+void MPU9250::mpu9250read_gyro(double* vector){
     unsigned char buffer[7];
     short temp;
-    float data;
+    double data;
 
     // +-2000dps
     mpu9250Reads(0x43, buffer, 6);
     temp = ((short)buffer[1] << 8) | buffer[2];
-    data = (float)temp*gyro_scaler;
+    data = (double)temp*gyro_scaler;
     vector[0] = data;
 
     temp = ((short)buffer[3] << 8) | buffer[4];
-    data = (float)temp*gyro_scaler;
+    data = (double)temp*gyro_scaler;
     vector[1] = data;
     
     temp = ((short)buffer[5] << 8) | buffer[6];
-    data = (float)temp*gyro_scaler;
+    data = (double)temp*gyro_scaler;
     vector[2] = data;    
 }
 
-void MPU9250::mpu9250read_all(float* vector, bool raw = false){
+void MPU9250::mpu9250read_all(double* vector, bool raw = false){
+    gyro_scaler *= (1-raw);
+    accelero_scaler *= (1-raw);
+    
     mpu9250read_acc(vector);
     vector[3]=0;
     mpu9250read_gyro(vector+4);
-
+    
 
     /*
+    unsigned char buffer[15];
+
+    short temp;
+    double data;
+
     mpu9250Reads(0x3B, buffer, 14);
-    for(int i=0;i<7;i++) vector[i] = (float)(((short)buffer[2*i+1]<<8) | buffer[2*i+2])*scaler[i];//(scaler[i]*(1-raw) + 1*raw);}
+    for(int i=0;i<7;i++){
+        temp = ((short)buffer[2*i+1] << 8) | buffer[2*i+2];
+        data = (double)temp*gyro_scaler;
+        vector[i] = data;
+    }
+    */
+    /*
+    unsigned char buffer[15];
+    mpu9250Reads(0x3B, buffer, 14);
+    for(int i=0;i<7;i++) vector[i] = ((double)(((short)buffer[2*i+1]<<8) | buffer[2*i+2]))*scaler[i];//(scaler[i]*(1-raw) + 1*raw);}
     */
 }
