@@ -154,6 +154,8 @@ private:
 	float gyro_scaler;
 	float accelero_scaler;
 	float magneto_scaler;
+	float temp_scaler;
+	float* scaler;
 
 public:
 	char gyro_range;
@@ -173,5 +175,6 @@ public:
 	void mpu9250read_acc(float* vector);
 	void mpu9250read_mag(float* vector);
 	void mpu9250read_gyro(float* vector);
+	void mpu9250read_all(float* v, bool raw);
 };
 #endif

@@ -41,6 +41,9 @@ MPU9250::MPU9250(){ //default constructor
 	spi_delayMS = 10000; //wait before SPI transmission
 	gyro_scaler = (float)0.00106526421440972222222;
 	accelero_scaler = (float)0.001197509765625;
+    temp_scaler = 0;
+    float temp[] = {accelero_scaler, accelero_scaler, accelero_scaler, temp_scaler, gyro_scaler, gyro_scaler, gyro_scaler};
+    scaler = temp;
 	//magneto_scaler = 
 }
 
@@ -206,3 +209,9 @@ void MPU9250::mpu9250read_gyro(float* vector){
     vector[0] = data;    
 }
 
+void MPU9250::mpu9250read_all(float* vector, bool raw = false){
+    unsigned char buffer[15];
+
+    mpu9250Reads(0x3B, buffer, 14);
+    for(int i=0;i<7;i++){vector[i] = (float)(((short)buffer[2*i+1] << 8) | buffer[2*i+2])*(scaler[i]*(1-raw) + 1*raw);}
+}

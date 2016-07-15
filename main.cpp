@@ -2,10 +2,13 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
 #include "AHRS.h"
+#include "mpu9250.h"
 
 void getTXT(string name);
 
@@ -14,14 +17,27 @@ vector<float> data_gyro;
 vector<float> data_accel;
 
 int main(){
-	//setting
-	float time0 = 0;
 	AHRS ahrs1 = AHRS();
+	MPU9250 mpu1 = MPU9250();
+	time_point<system_clock> start, end;
+	duration<double> interval;
+
+	start = system_clock::now();
+	//setting
 	set_data.resize(8); //for 8 kinds of data
 	data_accel.resize(3);
 	data_gyro.resize(3);
 	cout<<"hello AHRS"<<endl;
+	mpu1.mpu9250Initialize();
+	for(int i=0;i<1;i++);
+	end = system_clock::now();
+	interval = end - start;
 
+	cout<<interval.count()<<endl;
+
+
+
+	/*
 	//data collecting
 	getTXT("new.txt");
 	
@@ -30,22 +46,17 @@ int main(){
 			data_accel[j] = set_data[j+1][i];
 			data_gyro[j] = set_data[j+5][i];
 		}
-		ahrs1.attitude_update(data_gyro, set_data[0][i]-time0);
+		ahrs1.attitude_update(data_gyro, (set_data[0][i]-time0)/10000.0;
 		data_accel = ahrs1.frame_transformer(ahrs1.Q_0, data_accel);
+
 		time0 = set_data[0][i];
 		
 		//print
 		cout<<time0<<" [";
 		for(int k=0;k<3;k++) cout<<ahrs1.Q_0[k]<<", ";
-		cout<<ahrs1.Q_0[3]<<"] \t [";
+		cout<<ahrs1.Q_0[3]<<"]  \t  [";
 		for(int k=0;k<2;k++) cout<<data_accel[k]<<", ";
 		cout<<data_accel[2]<<"]"<<endl;
-	}
-
-
-	/*
-	for(int i=0;i<set_data[0].size();i++){
-		cout<<set_data[0][i]<<endl;
 	}
 	*/
 
