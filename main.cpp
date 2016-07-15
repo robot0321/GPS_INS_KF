@@ -10,53 +10,82 @@ using namespace std::chrono;
 #include "AHRS.h"
 #include "mpu9250.h"
 
-void getTXT(string name, vector<float> set_data);
+vector<vector<float>> getTXT(string name, int row);
 
-int main(){
+int main(int argc, char* argv[]){
 	AHRS ahrs = AHRS();
 	MPU9250 mpu = MPU9250();
-	time_point<system_clock> start, end;
-	duration<double> interval;
+	time_point<system_clock> start, end, loop_start;
+	duration<double> interval, livetime;
+	ofstream outFile;
+	//for setTXT
+	
 
 	//vector<vector<float>> set_data;
 	//vector<float> data_accel;
 	vector<float> data_gyro;
 	vector<float> Euler_angle;
 	double data_mpu[7];
+	int time_limit=0;
 
+
+	if(argc>2){
+		if(string(argv[1])=="-m"){
+		outFile.open(string(argv[2]),ios::out);
+		if(argc>3){
+			if(string(argv[3])=="-t"){
+				time_limit = stoi(argv[4]);
+			}
+		}}
+	}
 	
 	//*********setting**********
 	//set_data.resize(8); //for 8 kinds of data
 	//data_accel.resize(3);
 	data_gyro.resize(3);
 	Euler_angle.resize(3);
-
 	mpu.mpu9250Initialize();
-	
 
+
+	loop_start = system_clock::now();
 	while(1){
 		start = system_clock::now();
 		
-		mpu.mpu9250read_all(data_mpu, 0);
+		mpu.mpu9250read_all(data_mpu, 1);
 		
 		end = system_clock::now();
 		interval = end - start;
+		livetime = end - loop_start;
 
-		cout<<interval.count()<<" ";
+		//cout<<livetime.count()<<" "<<interval.count()<<" ";
 		//for(int i=0;i<7;i++) cout<<data_mpu[i]<<" ";
-		for(int i=0;i<3;i++) data_gyro[i] = (float)data_mpu[i+4];
+		
+		//for(int i=0;i<3;i++) data_gyro[i] = (float)data_mpu[i+4];
+		//ahrs.attitude_update(data_gyro, interval.count());
+		//for(int i=0;i<4;i++) cout<<ahrs.Q_0[i]<<"/";
+		
+		if(argc>2 && string(argv[1])=="-m" && outFile.is_open()){
+			outFile<<livetime.count()<<", "<<interval.count();
+			for(int i=0;i<7;i++) outFile<<", "<<data_mpu[i];
+			outFile<<endl;	
+		}
 
-		ahrs.attitude_update(data_gyro, interval.count());
-		for(int i=0;i<4;i++) cout<<ahrs.Q_0[i]<<"/";
-		Euler_angle = ahrs.Qaurt2Euler(ahrs.Q_0);
+		if(argc>3 && time_limit<livetime.count()){
+				outFile.close();
+				cout<<"\nMaking txt file (for "<<livetime.count()<<"sec) is done"<<endl;
+				break;
+		}
 
-		for(int i=0; i<3; i++) cout<<Euler_angle[i]<<" ";
-		cout<<endl;
+		//Euler_angle = ahrs.Qaurt2Euler(ahrs.Q_0);
+		//for(int i=0; i<3; i++) cout<<Euler_angle[i]<<" ";
+		//
+		
+		//cout<<endl;
 	}
 
 	/*
 	// *********data collecting***************
-	getTXT("new.txt", set_data);
+	set_data = getTXT("new.txt", 8);
 	
 	for(int i=0;i<set_data[0].size()-1;i++){
 		for(int j=0;j<3;j++){
@@ -82,16 +111,20 @@ int main(){
 
 
 
-void getTXT(string name, vector<vector<float>> set_data){
+vector<vector<float>> getTXT(string name, int row){
+	vector<vector<float>> set_data;
+	set_data.resize(row);
+
 	char buff[20];
-	ifstream file;
-	file.open(name);
-	while(file.good()){
+	ifstream inFile;
+	inFile.open(name);
+	while(inFile.good()){
 		for(int i=0;i<8;i++){
-			file.getline(buff, 20, ',');
+			inFile.getline(buff, 20, ',');
 			set_data[i].push_back(atof(buff));
 		}
 	}
-	file.close();
-}
+	inFile.close();
 
+	return set_data;
+}

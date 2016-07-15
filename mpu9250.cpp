@@ -182,8 +182,8 @@ void MPU9250::mpu9250read_gyro(double* vector){
 }
 
 void MPU9250::mpu9250read_all(double* vector, bool raw = false){
-    gyro_scaler *= (1-raw);
-    accelero_scaler *= (1-raw);
+    gyro_scaler = (1-raw)*gyro_scaler + raw*1;
+    accelero_scaler = (1-raw)*accelero_scaler + raw*1;
     
     mpu9250read_acc(vector);
     vector[3]=0;
