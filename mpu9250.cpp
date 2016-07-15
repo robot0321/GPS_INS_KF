@@ -38,7 +38,7 @@ MPU9250::MPU9250(){ //default constructor
 	accelero_range = 0x08;
 	gyro_range = 0x18;
 	spi_speed = 800000; //speed limit : 1M
-	spi_delayMS = 10000; //wait before SPI transmission
+	spi_delayMS = 100; //wait before SPI transmission
 	gyro_scaler = (float)0.00106526421440972222222;
 	accelero_scaler = (float)0.001197509765625;
     temp_scaler = 0;
@@ -153,15 +153,15 @@ void MPU9250::mpu9250read_acc(float* vector){
     // +-4G
     mpu9250Reads(0x3B, buffer, 6);
     temp = ((short)buffer[1] << 8) | buffer[2];
-    data = (float)temp*gyro_scaler;
+    data = (float)temp*accelero_scaler;
     vector[0] = data;
 
     temp = ((short)buffer[3] << 8) | buffer[4];
-    data = (float)temp*gyro_scaler;
+    data = (float)temp*accelero_scaler;
     vector[1] = data;
     
     temp = ((short)buffer[5] << 8) | buffer[6];
-    data = (float)temp*gyro_scaler;
+    data = (float)temp*accelero_scaler;
     vector[2] = data;   
 }
 
@@ -197,21 +197,26 @@ void MPU9250::mpu9250read_gyro(float* vector){
     // +-2000dps
     mpu9250Reads(0x43, buffer, 6);
     temp = ((short)buffer[1] << 8) | buffer[2];
-    data = (float)temp*accelero_scaler;
+    data = (float)temp*gyro_scaler;
     vector[0] = data;
 
     temp = ((short)buffer[3] << 8) | buffer[4];
-    data = (float)temp*accelero_scaler;
-    vector[0] = data;
+    data = (float)temp*gyro_scaler;
+    vector[1] = data;
     
     temp = ((short)buffer[5] << 8) | buffer[6];
-    data = (float)temp*accelero_scaler;
-    vector[0] = data;    
+    data = (float)temp*gyro_scaler;
+    vector[2] = data;    
 }
 
 void MPU9250::mpu9250read_all(float* vector, bool raw = false){
-    unsigned char buffer[15];
+    mpu9250read_acc(vector);
+    vector[3]=0;
+    mpu9250read_gyro(vector+4);
 
+
+    /*
     mpu9250Reads(0x3B, buffer, 14);
-    for(int i=0;i<7;i++){vector[i] = (float)(((short)buffer[2*i+1] << 8) | buffer[2*i+2])*(scaler[i]*(1-raw) + 1*raw);}
+    for(int i=0;i<7;i++) vector[i] = (float)(((short)buffer[2*i+1]<<8) | buffer[2*i+2])*scaler[i];//(scaler[i]*(1-raw) + 1*raw);}
+    */
 }

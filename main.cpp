@@ -21,22 +21,30 @@ int main(){
 	MPU9250 mpu1 = MPU9250();
 	time_point<system_clock> start, end;
 	duration<double> interval;
+	float vector[7];
 
-	start = system_clock::now();
+	
 	//setting
 	set_data.resize(8); //for 8 kinds of data
 	data_accel.resize(3);
 	data_gyro.resize(3);
-	cout<<"hello AHRS"<<endl;
 	mpu1.mpu9250Initialize();
-	for(int i=0;i<1;i++);
-	end = system_clock::now();
-	interval = end - start;
+	
 
-	cout<<interval.count()<<endl;
+	while(1){
+		start = system_clock::now();
+		
+		mpu1.mpu9250read_all(vector, 0);
+		
+		end = system_clock::now();
+		interval = end - start;
 
-
-
+		cout<<interval.count()<<" ";
+		for(int i=0;i<7;i++){
+			cout<<vector[i]<<" ";
+		}
+		cout<<endl;
+	}
 	/*
 	//data collecting
 	getTXT("new.txt");
