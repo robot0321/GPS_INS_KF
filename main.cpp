@@ -15,7 +15,7 @@ vector<vector<float>> getTXT(string name, int row);
 int main(int argc, char* argv[]){
 	//********* Declare Variables ***************
 	//vector<vector<float>> set_data;
-	//vector<float> data_accel;
+	vector<float> data_accel;
 	vector<float> data_gyro;
 	vector<float> Euler_angle;
 	double data_mpu[7];
@@ -49,7 +49,7 @@ int main(int argc, char* argv[]){
 
 	//*************** setting **************
 	//set_data.resize(8); //for 8 kinds of data
-	//data_accel.resize(3);
+	data_accel.resize(3);
 	data_gyro.resize(3);
 	Euler_angle.resize(3);
 
@@ -66,11 +66,11 @@ int main(int argc, char* argv[]){
 		livetime = end - loop_start;
 
 
-		//*********** showing time(sec)/acc/temp/gyro data *************
+		/*********** showing time(sec)/acc/temp/gyro data *************
 		cout<<livetime.count()<<" "<<interval.count()<<" ";
 		for(int i=0;i<7;i++) cout<<data_mpu[i]<<" ";
 		cout<<endl;
-		
+		*/
 
 
 		/*********************** Get Querternion *************************
@@ -81,8 +81,25 @@ int main(int argc, char* argv[]){
 		cout<<endl;
 		*/
 		
+		//********************* Get Q-transformed Accel *********************
+		cout<<livetime.count()<<" "<<interval.count()<<" ";
+		for(int i=0;i<3;i++) data_accel[i] = (float)data_mpu[i];
+		for(int i=0;i<3;i++) data_gyro[i] = (float)data_mpu[i+4];
+		ahrs.attitude_update(data_gyro, interval.count());
+		data_accel = ahrs.frame_transformer(ahrs.Q_0, data_accel);
+		for(int i=0;i<3;i++) cout<<data_accel[i]<<"/";
+		cout<<endl;
 
+		/********************** Euler Angle ***********************
+		//needed "Get Quarternion" first
+		
+		Euler_angle = ahrs.Qaurt2Euler(ahrs.Q_0);
+		for(int i=0; i<3; i++) cout<<Euler_angle[i]<<" ";
+		cout<<endl;
+		*/
+		
 
+		
 		/************** Making data file in limited time ****************
 		if(print_ones) cout<<"Collecting mpu data for \""<<time_limit<<"sec\" & making TXT file named \""<<string(argv[2])<<"\""<<endl; print_ones = false;
 		if(argc>2 && string(argv[1])=="-m" && outFile.is_open()){
@@ -96,18 +113,6 @@ int main(int argc, char* argv[]){
 				break;
 		}
 		*/
-
-
-
-		/********************** Euler Angle ***********************
-		//needed "Get Quarternion" first
-		
-		Euler_angle = ahrs.Qaurt2Euler(ahrs.Q_0);
-		for(int i=0; i<3; i++) cout<<Euler_angle[i]<<" ";
-		cout<<endl;
-		*/
-		
-		
 	}
 
 

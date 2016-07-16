@@ -151,8 +151,8 @@
 #define MPU_CHANNEL 1
 class MPU9250{
 private:
-	
 	double accelero_scaler;
+	double gyro_scaler;
 	double magneto_scaler;
 	double temp_scaler;
 	//double scaler[7];
@@ -160,7 +160,6 @@ private:
 	//double DATA_GYRO_VAR[3];
 
 public:
-	double gyro_scaler;
 	char gyro_range;
 	char accelero_range;
 	int spi_speed;
