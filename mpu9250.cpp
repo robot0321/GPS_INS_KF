@@ -243,7 +243,7 @@ void MPU9250::offset_samplingNsetting(int sampling_time_for_calibration){
     duration<double> livetime;
 
     delayMicroseconds(20000);
-    cout<<"Calibraion Time: "<<sampling_time_limit<<"seconds"endl;
+    cout<<"Calibraion Time: "<<sampling_time_for_calibration<<" sec"<<endl;
 
     loop_start = system_clock::now();
     while(1){

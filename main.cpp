@@ -35,7 +35,6 @@ int main(int argc, char* argv[]){
 			}
 		}else if(string(argv[1])=="-s"){
 			sampling_time_limit = stoi(argv[2]);
-			cout<<"limit : "<<sampling_time_limit<<endl;
 		}
 	}
 
