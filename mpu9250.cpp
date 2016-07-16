@@ -1,56 +1,77 @@
+#include "mpu9250.h"
+
 #include <wiringPiSPI.h>
 #include <wiringPi.h>
+#include <chrono>
+#include <cmath>
+#include <iostream>
 
-#include "mpu9250.h"
+using namespace std;
+using namespace std::chrono;
 
 // MPU_Init_Data 변수에는 초기화할 값과 레지스터 주소가 들어감.
 #define MPU_InitRegNum  15
+#define SPI_transtime 200
+#define PI 3.141592
 
 MPU9250::MPU9250(){ //default constructor	
 	accelero_range = 0x08;
 	gyro_range = 0x18;
 	spi_speed = 800000; //speed limit : 1M
-	spi_delayMS = 200; //min:100 //wait before SPI transmission
-	gyro_scaler     = 0.0010652642;//14409;//72222222;
-	accelero_scaler = 0.0011975097;//65625;
+	spi_delayMS = SPI_transtime; //min:100 //wait before SPI transmission
+	gyro_scaler     = 0.0010652642;    // +-2000dps
+	accelero_scaler = 0.0001220703125;    // +-4G, let g=9.8m/s^2
     temp_scaler = 0.0;
 
-    for(int i=0;i<3;i++){scaler[i] = accelero_scaler; scaler[i+4] = gyro_scaler;}
-	scaler[3] = temp_scaler;
+    //for(int i=0;i<3;i++){scaler[i] = accelero_scaler; scaler[i+4] = gyro_scaler;}
+	//scaler[3] = temp_scaler;
+    
+    mpu9250Initialize(10);  //sampling_time_for_calibration
+
 }
 
-MPU9250::MPU9250(int acc=0x08, int gyro=0x18, int speed=800000,int delay = 1000){
+MPU9250::MPU9250(int sampling_time_for_calibration, int acc, int gyro, int spi_speed_edit, int spi_delay){
 	switch(acc){
-		case 2: accelero_range=0x00; accelero_scaler=1;
-		case 4: accelero_range=0x08; accelero_scaler=1;
-		case 8: accelero_range=0x10; accelero_scaler=1;
-		case 16: accelero_range=0x18; accelero_scaler=1;
+		case 2: accelero_range=0x00; 
+		case 4: accelero_range=0x08; 
+		case 8: accelero_range=0x10; 
+		case 16: accelero_range=0x18; 
 	}
+    accelero_scaler = double(acc)/32786.0; //we don't know 'g(gravity accel)' so we will measure it later. but now, its unit is g
 
 	switch(gyro){
-		case 250: gyro_range=0x00; gyro_scaler=1;
-		case 500: gyro_range=0x08; gyro_scaler=1;
-		case 1000: gyro_range=0x10; gyro_scaler=1;
-		case 2000: gyro_range=0x18; gyro_scaler=1;
+		case 250: gyro_range=0x00; 
+		case 500: gyro_range=0x08;
+		case 1000: gyro_range=0x10;
+		case 2000: gyro_range=0x18; 
 	}
+    gyro_scaler = double(gyro)/32768.0*PI/180.0; 
 
-	spi_speed = speed;
-	spi_delayMS = delay;
+	spi_speed = spi_speed_edit;
+	spi_delayMS = spi_delay;
+
+    mpu9250Initialize(sampling_time_for_calibration);
+
+
 }
 
 MPU9250::~MPU9250(){
 }
 
 		 
-void MPU9250::mpu9250Initialize(){
-    int i;
-
+void MPU9250::mpu9250Initialize(int sampling_time_for_calibration){
     unsigned char MPU_Init_Data[MPU_InitRegNum][2] ={ //15*2 array
         {0x80, MPUREG_PWR_MGMT_1}, // Reset
         {0x01, MPUREG_PWR_MGMT_1}, // Auto select clock source
         {0x00, MPUREG_PWR_MGMT_2}, // Acc & Gyro enable
-        {gyro_range, MPUREG_GYRO_CONFIG}, // +-2000dps
-        {accelero_range, MPUREG_ACCEL_CONFIG}, // +-4G
+
+
+        //********MPU setting************
+        {gyro_range, MPUREG_GYRO_CONFIG}, 
+        {accelero_range, MPUREG_ACCEL_CONFIG}, 
+        //DLPF
+
+
         {0x30, MPUREG_INT_PIN_CFG},
         //{0x40, MPUREG_I2C_MST_CTRL},   // I2C Speed 348 kHz
         //{0x20, MPUREG_USER_CTRL},      // Enable AUX
@@ -77,9 +98,8 @@ void MPU9250::mpu9250Initialize(){
     wiringPiSPISetup(MPU_CHANNEL, spi_speed);
 
     // 각 레지스터에 값을 씀
-    for(i=0;i<MPU_InitRegNum;i++){
-        mpu9250Write(MPU_Init_Data[i][0], MPU_Init_Data[i][1]);
-    }
+    for(int i=0;i<MPU_InitRegNum;i++) mpu9250Write(MPU_Init_Data[i][0], MPU_Init_Data[i][1]);
+    offset_samplingNsetting(sampling_time_for_calibration);
 
 }
 
@@ -161,7 +181,7 @@ void MPU9250::mpu9250read_mag(double* vector){
 
 
 // 자이로 받아오기
-void MPU9250::mpu9250read_gyro(double* vector){
+void MPU9250::mpu9250read_gyro(double* vector, bool raw_enable=false){
     unsigned char buffer[7];
     short temp;
     double data;
@@ -170,24 +190,24 @@ void MPU9250::mpu9250read_gyro(double* vector){
     mpu9250Reads(0x43, buffer, 6);
     temp = ((short)buffer[1] << 8) | buffer[2];
     data = (double)temp*gyro_scaler;
-    vector[0] = data;
+    vector[0] = data - DATA_GYRO_OFFSET[0]*(1-raw_enable);
 
     temp = ((short)buffer[3] << 8) | buffer[4];
     data = (double)temp*gyro_scaler;
-    vector[1] = data;
+    vector[1] = data - DATA_GYRO_OFFSET[1]*(1-raw_enable);
     
     temp = ((short)buffer[5] << 8) | buffer[6];
     data = (double)temp*gyro_scaler;
-    vector[2] = data;    
+    vector[2] = data - DATA_GYRO_OFFSET[2]*(1-raw_enable);    
 }
 
-void MPU9250::mpu9250read_all(double* vector, bool raw = false){
-    gyro_scaler = (1-raw)*gyro_scaler + raw*1;
-    accelero_scaler = (1-raw)*accelero_scaler + raw*1;
+void MPU9250::mpu9250read_all(double* vector, bool raw_enable = false){
+    gyro_scaler = (1-raw_enable)*gyro_scaler + raw_enable*1;
+    accelero_scaler = (1-raw_enable)*accelero_scaler + raw_enable*1;
     
     mpu9250read_acc(vector);
     vector[3]=0;
-    mpu9250read_gyro(vector+4);
+    mpu9250read_gyro(vector+4, raw_enable);
     
 
     /*
@@ -206,6 +226,54 @@ void MPU9250::mpu9250read_all(double* vector, bool raw = false){
     /*
     unsigned char buffer[15];
     mpu9250Reads(0x3B, buffer, 14);
-    for(int i=0;i<7;i++) vector[i] = ((double)(((short)buffer[2*i+1]<<8) | buffer[2*i+2]))*scaler[i];//(scaler[i]*(1-raw) + 1*raw);}
+    for(int i=0;i<7;i++) vector[i] = ((double)(((short)buffer[2*i+1]<<8) | buffer[2*i+2]))*scaler[i];//(scaler[i]*(1-raw_enable) + 1*raw_enable);}
     */
+}
+
+void MPU9250::offset_samplingNsetting(int sampling_time_for_calibration){
+    //offset sampling
+    double data_vector[7];
+    int data_storage[7] = {};
+    double DATA_RAW_AVERAGE[7];
+    int count = 0;
+    double norm_accel;
+    int time_buffer=0;
+
+    time_point<system_clock> end, loop_start;
+    duration<double> livetime;
+
+    delayMicroseconds(20000);
+    cout<<"Calibraion Time: "<<sampling_time_limit<<"seconds"endl;
+
+    loop_start = system_clock::now();
+    while(1){
+        mpu9250read_all(data_vector, true);
+        for(int i=0;i<7;i++) data_storage[i] += int(data_vector[i]); //you must check the data variance "not to be overflowed"
+        count++;
+
+        livetime = system_clock::now() - loop_start;
+        if(int(livetime.count())>time_buffer){
+            time_buffer+=1;
+            cout<<"("<<time_buffer<<"/"<<sampling_time_for_calibration<<") sec..."<<endl;
+        }    
+        if(double(livetime.count()) >= sampling_time_for_calibration){
+            for(int i=0;i<7;i++){
+                DATA_RAW_AVERAGE[i] = double(data_storage[i])/double(count); //This is average (or expectation)
+                //for(j=0;j<count;count++){DATA_GYRO_VAR[i] =     } //This if for variance to use in Gaussian Filter (e.g. Kalman Filter)
+            }
+            break;
+        }
+    }
+    
+    //accelero : configuration of value of 'g'
+    //Explaination :: We just can get accelero sensor value as a factor of 'g'. 
+    //                If we don't know what 'g' is on that surface, we can't get accurate acccelation value.
+    //                The code below means, with assuming "stopped-initializing-states" (which is same as "1g-state")
+    //                we can scaling it to our taste, especailly 9.8 as an example. 
+    norm_accel = sqrt(pow(DATA_RAW_AVERAGE[0]*accelero_scaler,2) + pow(DATA_RAW_AVERAGE[1]*accelero_scaler,2) + pow(DATA_RAW_AVERAGE[2]*accelero_scaler,2));
+    accelero_scaler *= 9.8/norm_accel;
+
+    //gyro : configuration of a
+    for(int i=0;i<3;i++) DATA_GYRO_OFFSET[i] = DATA_RAW_AVERAGE[i+4];
+     
 }

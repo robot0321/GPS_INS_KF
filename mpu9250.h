@@ -1,5 +1,3 @@
-#include <vector>
-
 #ifndef MPU9250_H
 #define MPU9250_H
 
@@ -157,7 +155,9 @@ private:
 	double accelero_scaler;
 	double magneto_scaler;
 	double temp_scaler;
-	double scaler[7];
+	//double scaler[7];
+	double DATA_GYRO_OFFSET[3];
+	//double DATA_GYRO_VAR[3];
 
 public:
 	char gyro_range;
@@ -166,17 +166,18 @@ public:
 	int spi_delayMS;
 
 	MPU9250();
-	MPU9250(int acc, int gyro, int speed, int delay);
+	MPU9250(int sampling_time, int acc, int gyro, int spi_speed, int spi_delay);
 	~MPU9250();
 
-	void mpu9250Initialize(void);
+	void mpu9250Initialize(int sampling_time);
 	unsigned char mpu9250Read(unsigned char regNum);
 	void mpu9250Reads(unsigned char regNum, unsigned char* readBuf, int Bytes);
 	void mpu9250Write(unsigned char value, unsigned char regNum);
 
 	void mpu9250read_acc(double* v);
 	void mpu9250read_mag(double* v);
-	void mpu9250read_gyro(double* v);
-	void mpu9250read_all(double* v, bool raw);
+	void mpu9250read_gyro(double* v, bool raw_enable);
+	void mpu9250read_all(double* v, bool raw_enable);
+	void offset_samplingNsetting(int sampling_time);
 };
 #endif
