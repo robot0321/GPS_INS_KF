@@ -151,7 +151,7 @@
 #define MPU_CHANNEL 1
 class MPU9250{
 private:
-	double gyro_scaler;
+	
 	double accelero_scaler;
 	double magneto_scaler;
 	double temp_scaler;
@@ -160,6 +160,7 @@ private:
 	//double DATA_GYRO_VAR[3];
 
 public:
+	double gyro_scaler;
 	char gyro_range;
 	char accelero_range;
 	int spi_speed;
@@ -174,10 +175,10 @@ public:
 	void mpu9250Reads(unsigned char regNum, unsigned char* readBuf, int Bytes);
 	void mpu9250Write(unsigned char value, unsigned char regNum);
 
-	void mpu9250read_acc(double* v);
+	void mpu9250read_acc(double* v, int raw_enable);
 	void mpu9250read_mag(double* v);
-	void mpu9250read_gyro(double* v, bool raw_enable);
-	void mpu9250read_all(double* v, bool raw_enable);
+	void mpu9250read_gyro(double* v, int raw_enable);
+	void mpu9250read_all(double* v, int raw_enable);
 	void offset_samplingNsetting(int sampling_time);
 };
 #endif

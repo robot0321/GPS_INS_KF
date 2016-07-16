@@ -20,7 +20,8 @@ int main(int argc, char* argv[]){
 	vector<float> Euler_angle;
 	double data_mpu[7];
 	int time_limit=0;
-	int sampling_time_limit=10;
+	int sampling_time_limit=30;
+	bool print_ones = true;
 
 
 	//********* processing input value **********
@@ -41,7 +42,7 @@ int main(int argc, char* argv[]){
 
 	//********** Declare Objects **************
 	AHRS ahrs = AHRS();
-	MPU9250 mpu = MPU9250(sampling_time_limit, 16, 2000, 80000, 200); //sampling time, range of acc, range of gyro, spi transmission speed, spi delay
+	MPU9250 mpu = MPU9250(sampling_time_limit, 16, 250, 80000, 200); //sampling time, range of acc, range of gyro, spi transmission speed, spi delay
 	time_point<system_clock> start, end, loop_start;
 	duration<double> interval, livetime;
 
@@ -58,8 +59,7 @@ int main(int argc, char* argv[]){
 	loop_start = system_clock::now();
 	while(1){
 		start = system_clock::now();
-		
-		mpu.mpu9250read_all(data_mpu, false);
+		mpu.mpu9250read_all(data_mpu, 0);
 		
 		end = system_clock::now();
 		interval = end - start;
@@ -74,6 +74,7 @@ int main(int argc, char* argv[]){
 
 
 		/*********************** Get Querternion *************************
+		cout<<livetime.count()<<" "<<interval.count()<<" ";
 		for(int i=0;i<3;i++) data_gyro[i] = (float)data_mpu[i+4];
 		ahrs.attitude_update(data_gyro, interval.count());
 		for(int i=0;i<4;i++) cout<<ahrs.Q_0[i]<<"/";
@@ -82,7 +83,8 @@ int main(int argc, char* argv[]){
 		
 
 
-		/*************** Making data file in limited time ****************
+		/************** Making data file in limited time ****************
+		if(print_ones) cout<<"Collecting mpu data for \""<<time_limit<<"sec\" & making TXT file named \""<<string(argv[2])<<"\""<<endl; print_ones = false;
 		if(argc>2 && string(argv[1])=="-m" && outFile.is_open()){
 			outFile<<livetime.count()<<", "<<interval.count();
 			for(int i=0;i<7;i++) outFile<<", "<<data_mpu[i];
@@ -99,6 +101,7 @@ int main(int argc, char* argv[]){
 
 		/********************** Euler Angle ***********************
 		//needed "Get Quarternion" first
+		
 		Euler_angle = ahrs.Qaurt2Euler(ahrs.Q_0);
 		for(int i=0; i<3; i++) cout<<Euler_angle[i]<<" ";
 		cout<<endl;

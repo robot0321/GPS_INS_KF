@@ -137,7 +137,7 @@ void MPU9250::mpu9250Write(unsigned char value, unsigned char regNum){
 }
 
 // 가속도 받아오기.
-void MPU9250::mpu9250read_acc(double* vector){
+void MPU9250::mpu9250read_acc(double* vector, int raw_enable = 0){
     unsigned char buffer[7];
     short temp;
     double data;
@@ -145,15 +145,15 @@ void MPU9250::mpu9250read_acc(double* vector){
     // +-4G
     mpu9250Reads(0x3B, buffer, 6);
     temp = ((short)buffer[1] << 8) | buffer[2];
-    data = (double)temp*accelero_scaler;
+    data = (double)temp*((1-raw_enable)*accelero_scaler + raw_enable*1);
     vector[0] = data;
 
     temp = ((short)buffer[3] << 8) | buffer[4];
-    data = (double)temp*accelero_scaler;
+    data = (double)temp*((1-raw_enable)*accelero_scaler + raw_enable*1);
     vector[1] = data;
     
     temp = ((short)buffer[5] << 8) | buffer[6];
-    data = (double)temp*accelero_scaler;
+    data = (double)temp*((1-raw_enable)*accelero_scaler + raw_enable*1);
     vector[2] = data;   
 }
 
@@ -181,7 +181,7 @@ void MPU9250::mpu9250read_mag(double* vector){
 
 
 // 자이로 받아오기
-void MPU9250::mpu9250read_gyro(double* vector, bool raw_enable=false){
+void MPU9250::mpu9250read_gyro(double* vector, int raw_enable = 0){
     unsigned char buffer[7];
     short temp;
     double data;
@@ -189,23 +189,20 @@ void MPU9250::mpu9250read_gyro(double* vector, bool raw_enable=false){
     // +-2000dps
     mpu9250Reads(0x43, buffer, 6);
     temp = ((short)buffer[1] << 8) | buffer[2];
-    data = (double)temp*gyro_scaler;
-    vector[0] = data - DATA_GYRO_OFFSET[0]*(1-raw_enable);
+    data = (double)(temp - DATA_GYRO_OFFSET[0]*(1-raw_enable));
+    vector[0] = data*((1-raw_enable)*gyro_scaler + raw_enable*1);
 
     temp = ((short)buffer[3] << 8) | buffer[4];
-    data = (double)temp*gyro_scaler;
-    vector[1] = data - DATA_GYRO_OFFSET[1]*(1-raw_enable);
+    data = (double)(temp - DATA_GYRO_OFFSET[1]*(1-raw_enable));
+    vector[1] = data*((1-raw_enable)*gyro_scaler + raw_enable*1);
     
     temp = ((short)buffer[5] << 8) | buffer[6];
-    data = (double)temp*gyro_scaler;
-    vector[2] = data - DATA_GYRO_OFFSET[2]*(1-raw_enable);    
+    data = (double)(temp - DATA_GYRO_OFFSET[2]*(1-raw_enable));
+    vector[2] = data*((1-raw_enable)*gyro_scaler + raw_enable*1);
 }
 
-void MPU9250::mpu9250read_all(double* vector, bool raw_enable = false){
-    gyro_scaler = (1-raw_enable)*gyro_scaler + raw_enable*1;
-    accelero_scaler = (1-raw_enable)*accelero_scaler + raw_enable*1;
-    
-    mpu9250read_acc(vector);
+void MPU9250::mpu9250read_all(double* vector, int raw_enable = 0){
+    mpu9250read_acc(vector, raw_enable);
     vector[3]=0;
     mpu9250read_gyro(vector+4, raw_enable);
     
@@ -242,12 +239,12 @@ void MPU9250::offset_samplingNsetting(int sampling_time_for_calibration){
     time_point<system_clock> end, loop_start;
     duration<double> livetime;
 
-    delayMicroseconds(20000);
+    delayMicroseconds(100000);
     cout<<"Calibraion Time: "<<sampling_time_for_calibration<<" sec"<<endl;
 
     loop_start = system_clock::now();
     while(1){
-        mpu9250read_all(data_vector, true);
+        mpu9250read_all(data_vector, 1);
         for(int i=0;i<7;i++) data_storage[i] += int(data_vector[i]); //you must check the data variance "not to be overflowed"
         count++;
 
